@@ -6,7 +6,9 @@
 #=========================================================
 
 # --- Configuration ---
-CIVITAI_API_KEY="2eaa15b843c8d0e1b2fe34ed82c42e43"
+# Set CIVITAI_API_KEY environment variable before running, e.g.:
+# export CIVITAI_API_KEY="your_api_key_here"
+CIVITAI_API_KEY="${CIVITAI_API_KEY:-}"
 
 # Directories aligned with our setup
 BASE_PATH="/workspace/sweettea"

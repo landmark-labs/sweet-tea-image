@@ -162,8 +162,8 @@ download-models --essential
 ## Example First-Time Setup
 
 ```bash
-# 1. Set your API key
-export CIVITAI_API_KEY="2eaa15b843c8d0e1b2fe34ed82c42e43"
+# 1. Set your API key (get from https://civitai.com/user/account)
+export CIVITAI_API_KEY="your_api_key_here"
 
 # 2. Create config with your models
 cat > /workspace/models.conf << 'EOF'
