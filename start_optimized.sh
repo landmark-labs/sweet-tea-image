@@ -126,28 +126,36 @@ r2_sync_assets_async() {
     mkdir -p "${LOCAL_ROOT}/${d}"
   done
 
-  # Run at lowest priority (nice -n 19 = lowest CPU, ionice -c 3 = idle IO class)
-  # This lets other startup operations take precedence, but goes full speed when idle
-  nice -n 19 ionice -c 3 bash -c '
-    echo "[r2] Sync-down (copy) from '"${REMOTE}"'/{output,input,models,vlm} -> '"${LOCAL_ROOT}"'/..."
+  # Run entire sync in a backgrounded subshell at lowest priority
+  # nice -n 19 = lowest CPU priority, ionice -c 3 = idle IO class (only runs when nothing else needs IO)
+  # Structure: ( subshell with all work ) &
+  #   - The outer parentheses create a subshell
+  #   - The & at the end backgrounds the ENTIRE subshell
+  #   - This guarantees the function returns immediately
+  local RCLONE_ARGS
+  RCLONE_ARGS="$(r2_common_args)"
+  
+  (
+    echo "[r2] Sync-down (copy) from ${REMOTE}/{output,input,models,vlm} -> ${LOCAL_ROOT}/..."
     for p in output input models vlm; do
-      echo "[r2] copy '"${REMOTE}"'/${p} -> '"${LOCAL_ROOT}"'/${p}"
-      set +e
-      rclone copy \
-        "'"${REMOTE}"'/${p}" "'"${LOCAL_ROOT}"'/${p}" \
-        '"$(r2_common_args)"' \
+      echo "[r2] copy ${REMOTE}/${p} -> ${LOCAL_ROOT}/${p}"
+      nice -n 19 ionice -c 3 rclone copy \
+        "${REMOTE}/${p}" "${LOCAL_ROOT}/${p}" \
+        ${RCLONE_ARGS} \
         --order-by size,ascending \
         --no-traverse \
         --create-empty-src-dirs \
         --stats 10s --stats-one-line --log-level NOTICE \
-        $(for e in "/**/.git/**" "/**/__pycache__/**" "/**/outputs/**" "/**/temp/**" "/**/*.tmp" "/**/*.part"; do printf -- "--exclude %q " "$e"; done)
-      rc=$?; set -e
-      if [[ $rc -ne 0 ]]; then
-        echo "[r2] WARNING: rclone copy for ${p} exited with ${rc}; continuing."
-      fi
+        --exclude "/**/.git/**" \
+        --exclude "/**/__pycache__/**" \
+        --exclude "/**/outputs/**" \
+        --exclude "/**/temp/**" \
+        --exclude "/**/*.tmp" \
+        --exclude "/**/*.part" || echo "[r2] WARNING: rclone copy for ${p} exited with $?; continuing."
     done
     echo "[r2] Background sync-down finished."
-  ' 2>&1 | grep --line-buffered -v "Failed to read mtime" >> "${LOG}" &
+  ) >> "${LOG}" 2>&1 &
+  
   SYNC_DOWN_PID=$!
   export SYNC_DOWN_PID
   echo "[r2] Background pull started (pid=${SYNC_DOWN_PID}); tail -f ${LOG} to watch progress."
