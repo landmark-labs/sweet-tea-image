@@ -63,7 +63,7 @@ fi
 
 source venv/bin/activate
 echo "[sweet-tea] Installing backend dependencies..."
-pip install --no-cache-dir -q -r requirements.txt 2>&1 | tail -5
+pip install -r requirements.txt
 deactivate
 
 echo "[sweet-tea] Starting backend on port 8000..."
