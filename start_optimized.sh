@@ -277,7 +277,7 @@ install_or_verify_sageattention() {
     pip3 install --no-build-isolation .
 
     echo "Verifying SageAttention3 installation..."
-    $VENV_PYTHON -c "import torch, triton; from sageattn3 import sageattn_fp4; print('✅ SageAttention3 compiled and installed successfully')"
+    $VENV_PYTHON -c "import torch, triton; from sageattn3 import sageattn3_blackwell; print('✅ SageAttention3 compiled and installed successfully')"
     
     cd /
     rm -rf /tmp/SageAttention

@@ -37,9 +37,9 @@ def initialize_sageattention3():
                 return original_sdpa(q, k, v, attn_mask=attn_mask, dropout_p=dropout_p, is_causal=is_causal, scale=scale)
 
             # Lazy import: this is where CUDA kernels may compile
-            from sageattn3 import sageattn_fp4
+            from sageattn3 import sageattn3_blackwell
             _used += 1
-            return sageattn_fp4(q, k, v, is_causal=is_causal, scale=scale)
+            return sageattn3_blackwell(q, k, v, is_causal=is_causal, pv_accum_dtype="fp32")
         except Exception as e:
             _fallback += 1
             logger.info(f"SageAttention3 unavailable ({e}); falling back to SDPA.")
