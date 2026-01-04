@@ -28,6 +28,20 @@ stop_sweet_tea() {
     BACKEND_PID=$(get_backend_pid)
     if [[ -n "$BACKEND_PID" ]]; then
         kill "$BACKEND_PID" 2>/dev/null
+        
+        # Wait for graceful exit
+        TIMEOUT=10
+        while kill -0 "$BACKEND_PID" 2>/dev/null && [ $TIMEOUT -gt 0 ]; do
+            sleep 1
+            ((TIMEOUT--))
+        done
+        
+        # Force kill if still running
+        if kill -0 "$BACKEND_PID" 2>/dev/null; then
+            echo "[sweet-tea] Backend did not exit gracefully, force killing..."
+            kill -9 "$BACKEND_PID" 2>/dev/null
+            sleep 1
+        fi
         echo "[sweet-tea] Backend stopped (PID: $BACKEND_PID)"
     else
         echo "[sweet-tea] Backend not running"
@@ -39,12 +53,33 @@ stop_sweet_tea() {
         kill "$FRONTEND_PID" 2>/dev/null
         # Also kill any child node processes
         pkill -f "node.*vite" 2>/dev/null || true
+        
+        # Wait for graceful exit
+        TIMEOUT=10
+        while kill -0 "$FRONTEND_PID" 2>/dev/null && [ $TIMEOUT -gt 0 ]; do
+            sleep 1
+            ((TIMEOUT--))
+        done
+        
+        # Force kill if still running
+        if kill -0 "$FRONTEND_PID" 2>/dev/null; then
+            echo "[sweet-tea] Frontend did not exit gracefully, force killing..."
+            kill -9 "$FRONTEND_PID" 2>/dev/null
+            pkill -9 -f "node.*vite" 2>/dev/null || true
+            sleep 1
+        fi
         echo "[sweet-tea] Frontend stopped (PID: $FRONTEND_PID)"
     else
         echo "[sweet-tea] Frontend not running"
     fi
     
-    sleep 1
+    # Final verification that all processes are dead
+    if [[ -n "$(get_backend_pid)" ]] || [[ -n "$(get_frontend_pid)" ]]; then
+        echo -e "${RED}[sweet-tea] Warning: Some processes may still be running${NC}"
+        return 1
+    fi
+    
+    echo "[sweet-tea] All processes stopped successfully"
 }
 
 start_sweet_tea() {
